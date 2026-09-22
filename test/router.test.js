@@ -3,12 +3,16 @@ import assert from "node:assert/strict";
 import {
   chooseTier,
   buildFallbackSequence,
+  explainDecision,
 } from "../src/router.js";
 
 const config = {
   mediumChars: 100,
   complexChars: 500,
   fallbackOrder: ["local", "luna", "sol"],
+  local: { model: "qwen3:14b" },
+  luna: { model: "gpt-5.6-luna" },
+  sol: { model: "gpt-5.6-sol" },
 };
 
 test("defaults short requests to local", () => {
@@ -116,4 +120,31 @@ test("fallback normalizes legacy tier aliases", () => {
     }),
     ["luna", "local", "sol"],
   );
+});
+
+test("explains the full decision without calling providers", () => {
+  const result = explainDecision(
+    {
+      model: "auto",
+      messages: [
+        {
+          role: "user",
+          content: "Debug this TypeScript function.",
+        },
+      ],
+    },
+    {},
+    config,
+  );
+
+  assert.deepEqual(result, {
+    tier: "luna",
+    reason: "complexity-heuristic",
+    fallback: ["luna", "local", "sol"],
+    models: {
+      local: "qwen3:14b",
+      luna: "gpt-5.6-luna",
+      sol: "gpt-5.6-sol",
+    },
+  });
 });
