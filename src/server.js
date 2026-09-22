@@ -1,22 +1,25 @@
 import http from "node:http";
 import { loadConfig } from "./config.js";
 import { chooseTier, buildFallbackSequence } from "./router.js";
-import { callChatCompletion, providerConfigured } from "./providers.js";
+import {
+  callChatCompletion,
+  providerConfigured,
+} from "./providers.js";
 
 const config = loadConfig();
 
 const providers = {
   local: config.local,
-  cheap: config.cheap,
-  powerful: config.powerful,
+  luna: config.luna,
+  sol: config.sol,
 };
 
 const stats = {
   startedAt: new Date().toISOString(),
   totalRequests: 0,
   chatRequests: 0,
-  routed: { local: 0, cheap: 0, powerful: 0 },
-  providerFailures: { local: 0, cheap: 0, powerful: 0 },
+  routed: { local: 0, luna: 0, sol: 0 },
+  providerFailures: { local: 0, luna: 0, sol: 0 },
 };
 
 function sendJson(res, status, payload, extraHeaders = {}) {
@@ -38,7 +41,9 @@ async function readJson(req) {
 
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > maxBytes) throw new Error("Request body too large.");
+    if (size > maxBytes) {
+      throw new Error("Request body too large.");
+    }
     chunks.push(chunk);
   }
 
@@ -49,9 +54,31 @@ async function readJson(req) {
 function virtualModels() {
   return [
     { id: "auto", object: "model", owned_by: "ai-workstation-router" },
-    { id: "router/local", object: "model", owned_by: "ai-workstation-router" },
-    { id: "router/cheap", object: "model", owned_by: "ai-workstation-router" },
-    { id: "router/powerful", object: "model", owned_by: "ai-workstation-router" },
+    {
+      id: "router/local",
+      object: "model",
+      owned_by: "ai-workstation-router",
+    },
+    {
+      id: "router/luna",
+      object: "model",
+      owned_by: "ai-workstation-router",
+    },
+    {
+      id: "router/sol",
+      object: "model",
+      owned_by: "ai-workstation-router",
+    },
+    {
+      id: "router/cheap",
+      object: "model",
+      owned_by: "ai-workstation-router",
+    },
+    {
+      id: "router/powerful",
+      object: "model",
+      owned_by: "ai-workstation-router",
+    },
   ];
 }
 
@@ -59,13 +86,17 @@ const server = http.createServer(async (req, res) => {
   stats.totalRequests += 1;
 
   try {
-    const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+    const url = new URL(
+      req.url,
+      `http://${req.headers.host || "localhost"}`,
+    );
 
     if (req.method === "GET" && url.pathname === "/health") {
       return sendJson(res, 200, {
         ok: true,
         service: "ai-workstation-router",
         version: "0.1.0",
+        defaultRoute: "local -> luna -> sol",
         providers: Object.fromEntries(
           Object.entries(providers).map(([tier, provider]) => [
             tier,
@@ -80,27 +111,37 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && url.pathname === "/v1/models") {
-      return sendJson(res, 200, { object: "list", data: virtualModels() });
+      return sendJson(res, 200, {
+        object: "list",
+        data: virtualModels(),
+      });
     }
 
     if (req.method === "GET" && url.pathname === "/router/stats") {
       return sendJson(res, 200, stats);
     }
 
-    if (req.method === "POST" && url.pathname === "/v1/chat/completions") {
+    if (
+      req.method === "POST" &&
+      url.pathname === "/v1/chat/completions"
+    ) {
       stats.chatRequests += 1;
       const body = await readJson(req);
 
       if (body.stream === true) {
         return sendJson(res, 400, {
           error: {
-            message: "Streaming is not supported in v0.1. Set stream=false.",
+            message:
+              "Streaming is not supported in v0.1. Set stream=false.",
             type: "unsupported_feature",
           },
         });
       }
 
-      if (!Array.isArray(body.messages) || body.messages.length === 0) {
+      if (
+        !Array.isArray(body.messages) ||
+        body.messages.length === 0
+      ) {
         return sendJson(res, 400, {
           error: {
             message: "`messages` must be a non-empty array.",
@@ -110,19 +151,29 @@ const server = http.createServer(async (req, res) => {
       }
 
       const decision = chooseTier(body, req.headers, config);
-      const sequence = buildFallbackSequence(decision.tier, config);
+      const sequence = buildFallbackSequence(
+        decision.tier,
+        config,
+      );
       const attempts = [];
 
       for (const tier of sequence) {
         const provider = providers[tier];
 
         if (!providerConfigured(provider)) {
-          attempts.push({ tier, status: "skipped", reason: "not-configured" });
+          attempts.push({
+            tier,
+            status: "skipped",
+            reason: "not-configured",
+          });
           continue;
         }
 
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), config.timeoutMs);
+        const timer = setTimeout(
+          () => controller.abort(),
+          config.timeoutMs,
+        );
 
         try {
           const result = await callChatCompletion(
@@ -146,9 +197,10 @@ const server = http.createServer(async (req, res) => {
           attempts.push({
             tier,
             status: "failed",
-            reason: error?.name === "AbortError"
-              ? "timeout"
-              : String(error?.message || error),
+            reason:
+              error?.name === "AbortError"
+                ? "timeout"
+                : String(error?.message || error),
           });
         }
       }
