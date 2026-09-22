@@ -2,6 +2,14 @@ function joinUrl(baseUrl, path) {
   return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 }
 
+function isOpenRouter(baseUrl) {
+  try {
+    return new URL(baseUrl).hostname.endsWith("openrouter.ai");
+  } catch {
+    return false;
+  }
+}
+
 export function providerConfigured(provider) {
   if (!provider?.model || !provider?.baseUrl) return false;
   if (provider.name === "local") return true;
@@ -10,7 +18,9 @@ export function providerConfigured(provider) {
 
 export async function callChatCompletion(provider, body, config, signal) {
   if (!providerConfigured(provider)) {
-    throw new Error(`Provider tier "${provider.name}" is not configured.`);
+    throw new Error(
+      `Provider tier "${provider.name}" is not configured.`,
+    );
   }
 
   const headers = { "content-type": "application/json" };
@@ -19,9 +29,13 @@ export async function callChatCompletion(provider, body, config, signal) {
     headers.authorization = `Bearer ${provider.apiKey}`;
   }
 
-  if (provider.name !== "local") {
-    if (config.openRouterSiteUrl) headers["HTTP-Referer"] = config.openRouterSiteUrl;
-    if (config.openRouterAppName) headers["X-Title"] = config.openRouterAppName;
+  if (isOpenRouter(provider.baseUrl)) {
+    if (config.openRouterSiteUrl) {
+      headers["HTTP-Referer"] = config.openRouterSiteUrl;
+    }
+    if (config.openRouterAppName) {
+      headers["X-Title"] = config.openRouterAppName;
+    }
   }
 
   const outbound = {
@@ -30,12 +44,15 @@ export async function callChatCompletion(provider, body, config, signal) {
     stream: false,
   };
 
-  const response = await fetch(joinUrl(provider.baseUrl, "/chat/completions"), {
-    method: "POST",
-    headers,
-    body: JSON.stringify(outbound),
-    signal,
-  });
+  const response = await fetch(
+    joinUrl(provider.baseUrl, "/chat/completions"),
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify(outbound),
+      signal,
+    },
+  );
 
   const text = await response.text();
   let parsed;
@@ -43,14 +60,19 @@ export async function callChatCompletion(provider, body, config, signal) {
   try {
     parsed = text ? JSON.parse(text) : {};
   } catch {
-    parsed = { error: { message: text || `Provider returned HTTP ${response.status}` } };
+    parsed = {
+      error: {
+        message:
+          text || `Provider returned HTTP ${response.status}`,
+      },
+    };
   }
 
   if (!response.ok) {
     throw new Error(
       parsed?.error?.message ||
-      parsed?.message ||
-      `Provider "${provider.name}" returned HTTP ${response.status}`,
+        parsed?.message ||
+        `Provider "${provider.name}" returned HTTP ${response.status}`,
     );
   }
 
