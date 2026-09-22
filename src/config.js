@@ -4,6 +4,17 @@ function intEnv(name, fallback) {
 }
 
 export function loadConfig() {
+  const cloudBaseUrl =
+    process.env.CLOUD_BASE_URL ||
+    process.env.OPENROUTER_BASE_URL ||
+    "https://api.openai.com/v1";
+
+  const cloudApiKey =
+    process.env.CLOUD_API_KEY ||
+    process.env.OPENAI_API_KEY ||
+    process.env.OPENROUTER_API_KEY ||
+    "";
+
   return {
     host: process.env.HOST || "127.0.0.1",
     port: intEnv("PORT", 11436),
@@ -16,24 +27,33 @@ export function loadConfig() {
       model: process.env.LOCAL_MODEL || "qwen3:14b",
     },
 
-    cheap: {
-      name: "cheap",
-      baseUrl: process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
-      apiKey: process.env.OPENROUTER_API_KEY || "",
-      model: process.env.CHEAP_MODEL || "",
+    luna: {
+      name: "luna",
+      baseUrl: cloudBaseUrl,
+      apiKey: cloudApiKey,
+      model:
+        process.env.LUNA_MODEL ||
+        process.env.CHEAP_MODEL ||
+        "gpt-5.6-luna",
     },
 
-    powerful: {
-      name: "powerful",
-      baseUrl: process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
-      apiKey: process.env.OPENROUTER_API_KEY || "",
-      model: process.env.POWERFUL_MODEL || "",
+    sol: {
+      name: "sol",
+      baseUrl: cloudBaseUrl,
+      apiKey: cloudApiKey,
+      model:
+        process.env.SOL_MODEL ||
+        process.env.POWERFUL_MODEL ||
+        "gpt-5.6-sol",
     },
 
     openRouterSiteUrl: process.env.OPENROUTER_SITE_URL || "",
-    openRouterAppName: process.env.OPENROUTER_APP_NAME || "AI Workstation Router",
+    openRouterAppName:
+      process.env.OPENROUTER_APP_NAME || "AI Workstation Router",
 
-    fallbackOrder: (process.env.ROUTER_FALLBACK_ORDER || "local,cheap,powerful")
+    fallbackOrder: (
+      process.env.ROUTER_FALLBACK_ORDER || "local,luna,sol"
+    )
       .split(",")
       .map((value) => value.trim())
       .filter(Boolean),
