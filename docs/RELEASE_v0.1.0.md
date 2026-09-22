@@ -4,9 +4,11 @@ First public preview of AI Workstation Router.
 
 ## Highlights
 
-- Local-first routing: local → cheap cloud → powerful cloud → fallback
+- Economic default routing: **Local → GPT-5.6 Luna → GPT-5.6 Sol**
 - OpenAI-compatible `/v1/chat/completions` endpoint
+- Direct OpenAI API configuration plus OpenAI-compatible provider support
 - Explicit route overrides with virtual models or `x-ai-router-tier`
+- Backward-compatible `cheap` and `powerful` aliases
 - Transparent heuristic routing
 - Provider fallback with bounded attempts
 - Health/configuration endpoint
@@ -14,13 +16,21 @@ First public preview of AI Workstation Router.
 - Safe environment configuration template
 - Node.js unit tests
 - GitHub Actions CI
-- Architecture, roadmap, contribution, and security documentation
+- Architecture, integration, roadmap, contribution, and security documentation
 
 ## Compatibility
 
 Node.js 20.6+
 
 The repository also preserves the original Windows/OpenCode prototype in `ai-workstation-router-provider.js`. The reusable implementation is under `src/`.
+
+## Economic route
+
+```text
+Local → Luna → Sol
+```
+
+Routine requests stay local where possible. Medium-complexity/high-volume cloud work goes to Luna. Sol is reserved for difficult tasks such as architecture, security, migrations, concurrency analysis, and large refactors.
 
 ## Known limitations
 
@@ -30,7 +40,7 @@ The repository also preserves the original Windows/OpenCode prototype in `ai-wor
 - heuristic policy only
 - not hardened for unauthenticated public-internet exposure
 
-## Upgrade / install
+## Install
 
 ```bash
 git clone https://github.com/Kmlbyl/ai-workstation-router.git
@@ -40,8 +50,6 @@ npm start
 ```
 
 ## Validation
-
-Run:
 
 ```bash
 npm run check
