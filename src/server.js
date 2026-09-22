@@ -1,6 +1,10 @@
 import http from "node:http";
 import { loadConfig } from "./config.js";
-import { chooseTier, buildFallbackSequence } from "./router.js";
+import {
+  chooseTier,
+  buildFallbackSequence,
+  explainDecision,
+} from "./router.js";
 import {
   callChatCompletion,
   providerConfigured,
@@ -54,31 +58,11 @@ async function readJson(req) {
 function virtualModels() {
   return [
     { id: "auto", object: "model", owned_by: "ai-workstation-router" },
-    {
-      id: "router/local",
-      object: "model",
-      owned_by: "ai-workstation-router",
-    },
-    {
-      id: "router/luna",
-      object: "model",
-      owned_by: "ai-workstation-router",
-    },
-    {
-      id: "router/sol",
-      object: "model",
-      owned_by: "ai-workstation-router",
-    },
-    {
-      id: "router/cheap",
-      object: "model",
-      owned_by: "ai-workstation-router",
-    },
-    {
-      id: "router/powerful",
-      object: "model",
-      owned_by: "ai-workstation-router",
-    },
+    { id: "router/local", object: "model", owned_by: "ai-workstation-router" },
+    { id: "router/luna", object: "model", owned_by: "ai-workstation-router" },
+    { id: "router/sol", object: "model", owned_by: "ai-workstation-router" },
+    { id: "router/cheap", object: "model", owned_by: "ai-workstation-router" },
+    { id: "router/powerful", object: "model", owned_by: "ai-workstation-router" },
   ];
 }
 
@@ -119,6 +103,25 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "GET" && url.pathname === "/router/stats") {
       return sendJson(res, 200, stats);
+    }
+
+    if (req.method === "POST" && url.pathname === "/router/decision") {
+      const body = await readJson(req);
+
+      if (!Array.isArray(body.messages) || body.messages.length === 0) {
+        return sendJson(res, 400, {
+          error: {
+            message: "`messages` must be a non-empty array.",
+            type: "invalid_request_error",
+          },
+        });
+      }
+
+      return sendJson(
+        res,
+        200,
+        explainDecision(body, req.headers, config),
+      );
     }
 
     if (
