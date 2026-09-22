@@ -1,0 +1,44 @@
+function intEnv(name, fallback) {
+  const value = Number.parseInt(process.env[name] ?? "", 10);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+export function loadConfig() {
+  return {
+    host: process.env.HOST || "127.0.0.1",
+    port: intEnv("PORT", 11436),
+    timeoutMs: intEnv("REQUEST_TIMEOUT_MS", 120000),
+
+    local: {
+      name: "local",
+      baseUrl: process.env.LOCAL_BASE_URL || "http://127.0.0.1:11434/v1",
+      apiKey: process.env.LOCAL_API_KEY || "",
+      model: process.env.LOCAL_MODEL || "qwen3:14b",
+    },
+
+    cheap: {
+      name: "cheap",
+      baseUrl: process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
+      apiKey: process.env.OPENROUTER_API_KEY || "",
+      model: process.env.CHEAP_MODEL || "",
+    },
+
+    powerful: {
+      name: "powerful",
+      baseUrl: process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
+      apiKey: process.env.OPENROUTER_API_KEY || "",
+      model: process.env.POWERFUL_MODEL || "",
+    },
+
+    openRouterSiteUrl: process.env.OPENROUTER_SITE_URL || "",
+    openRouterAppName: process.env.OPENROUTER_APP_NAME || "AI Workstation Router",
+
+    fallbackOrder: (process.env.ROUTER_FALLBACK_ORDER || "local,cheap,powerful")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+
+    mediumChars: intEnv("ROUTER_MEDIUM_CHARS", 2500),
+    complexChars: intEnv("ROUTER_COMPLEX_CHARS", 7000),
+  };
+}
