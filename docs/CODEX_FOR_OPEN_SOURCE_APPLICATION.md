@@ -34,11 +34,16 @@ The project originated from my own working local AI development workstation. My 
 
 I am the primary maintainer and use the architecture in my own development workflow. The repository includes source code, CI, tests, security guidance, architecture docs, integration examples, roadmap, issue tracking, and release notes. I am continuing to add real maintenance history and will report adoption honestly as it develops.
 
+## Current evidence
+
+- v0.1.0 GitHub Release is published and verified.
+- CI is green on the current main branch.
+- A post-release feature issue was implemented and closed with tests: dry-run routing decision endpoint.
+- The repository includes an OpenCode-style integration example and public architecture documentation.
+- Maintenance history now includes release work, feature work, tests, CI, and issue tracking.
+
 ## Before submitting
 
-- Publish and verify the v0.1.0 GitHub Release.
-- Keep CI green.
-- Complete at least one more feature issue with tests.
-- Add/verify an end-to-end Local → Luna → Sol usage example.
-- Collect honest usage/adoption signals if they emerge.
+- Add/verify an end-to-end Local → Luna → Sol usage example against live providers.
+- Continue normal maintenance and gather honest adoption signals if they emerge.
 - Add the OpenAI Organization ID required by the application form.
