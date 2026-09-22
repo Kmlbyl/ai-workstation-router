@@ -6,9 +6,23 @@ AI Workstation Router exposes an OpenAI-compatible local endpoint. A coding clie
 http://127.0.0.1:11436/v1
 ```
 
-## 1. Start the router
+## 1. Configure the economic route
 
-Create `.env` from `.env.example`, then:
+Copy `.env.example` to `.env`.
+
+Example direct OpenAI cloud configuration:
+
+```env
+CLOUD_BASE_URL=https://api.openai.com/v1
+CLOUD_API_KEY=your_key_here
+LUNA_MODEL=gpt-5.6-luna
+SOL_MODEL=gpt-5.6-sol
+ROUTER_FALLBACK_ORDER=local,luna,sol
+```
+
+Keep the real key only in your local environment or secret manager.
+
+## 2. Start the router
 
 ```bash
 npm start
@@ -21,12 +35,18 @@ curl http://127.0.0.1:11436/health
 curl http://127.0.0.1:11436/v1/models
 ```
 
-## 2. Use automatic routing
+The health response should report:
+
+```text
+local -> luna -> sol
+```
+
+## 3. Use automatic routing
 
 Send the virtual model `auto`:
 
 ```bash
-curl http://127.0.0.1:11436/v1/chat/completions \
+curl -i http://127.0.0.1:11436/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "auto",
@@ -36,32 +56,46 @@ curl http://127.0.0.1:11436/v1/chat/completions \
   }'
 ```
 
-The response headers include:
+A debugging request should normally select Luna. The response headers include:
 
 ```text
-x-ai-router-tier
-x-ai-router-reason
+x-ai-router-tier: luna
+x-ai-router-reason: complexity-heuristic
 ```
 
-## 3. Force a tier
+## 4. Force Sol for hard work
 
-Use one of:
+```bash
+curl -i http://127.0.0.1:11436/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "x-ai-router-tier: sol" \
+  -d '{
+    "model": "auto",
+    "messages": [
+      {"role": "user", "content": "Review this distributed-system migration architecture."}
+    ]
+  }'
+```
+
+## 5. Virtual models
 
 ```text
+auto
 router/local
-router/cheap
-router/powerful
+router/luna
+router/sol
 ```
 
-or send:
+Legacy aliases remain valid:
 
 ```text
-x-ai-router-tier: local|cheap|powerful
+router/cheap      -> Luna
+router/powerful   -> Sol
 ```
 
-## 4. Client configuration pattern
+## 6. Client configuration pattern
 
-Exact configuration keys differ by client/version, but the pattern is:
+Exact keys differ by client/version, but the pattern is:
 
 ```json
 {
@@ -74,8 +108,8 @@ Exact configuration keys differ by client/version, but the pattern is:
 }
 ```
 
-Do not copy provider secrets into client configuration if the router already owns them. Keep real keys only in your local `.env` or secret manager.
+Do not copy provider secrets into client configuration if the router already owns them.
 
 ## Notes
 
-This example documents the integration shape rather than claiming compatibility with every OpenCode version. If a client requires a slightly different provider schema, open an issue with the client version and redacted config.
+This documents the integration shape rather than claiming compatibility with every OpenCode version. If a client requires a different provider schema, open an issue with the client version and redacted config.
