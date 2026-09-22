@@ -1,0 +1,15 @@
+{
+  "name": "ai-workstation-router",
+  "version": "0.1.0",
+  "description": "Local-first OpenAI-compatible routing gateway for AI coding workflows.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node --env-file=.env src/server.js",
+    "start:plain": "node src/server.js",
+    "check": "node --check src/config.js && node --check src/router.js && node --check src/providers.js && node --check src/server.js",
+    "test": "node --test"
+  },
+  "engines": {"node": ">=20.6"},
+  "license": "MIT"
+}
