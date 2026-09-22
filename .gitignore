@@ -1,5 +1,6 @@
 .env
 .env.*
+!.env.example
 *.key
 *.pem
 *.secret
@@ -8,5 +9,9 @@ credentials/
 node_modules/
 logs/
 backups/
+coverage/
+dist/
 *.bak
 *.log
+.DS_Store
+Thumbs.db
