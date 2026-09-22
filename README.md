@@ -80,6 +80,24 @@ SOL_MODEL=gpt-5.6-sol
 - `GET /v1/models`
 - `POST /v1/chat/completions`
 - `GET /router/stats`
+- `POST /router/decision` — inspect the selected tier and fallback path without calling any upstream model
+
+## Dry-run routing decision
+
+You can inspect the router's decision without spending provider tokens:
+
+```bash
+curl http://127.0.0.1:11436/router/decision \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "auto",
+    "messages": [
+      {"role": "user", "content": "Debug this TypeScript helper."}
+    ]
+  }'
+```
+
+The endpoint returns the selected tier, decision reason, fallback order, and configured model names. It never calls an upstream model and never returns API keys.
 
 ## Explicit routing
 
