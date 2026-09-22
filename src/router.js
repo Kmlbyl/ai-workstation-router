@@ -24,6 +24,18 @@ const MEDIUM_KEYWORDS = [
   "ci/cd",
 ];
 
+const TIER_ALIASES = {
+  local: "local",
+  luna: "luna",
+  sol: "sol",
+  cheap: "luna",
+  powerful: "sol",
+};
+
+function normalizeTier(value) {
+  return TIER_ALIASES[value] || "";
+}
+
 function flattenMessages(messages = []) {
   return messages
     .map((message) => {
@@ -35,17 +47,27 @@ function flattenMessages(messages = []) {
 }
 
 export function chooseTier(body, headers, config) {
-  const explicitHeader = headers["x-ai-router-tier"];
+  const explicitTier = normalizeTier(headers["x-ai-router-tier"]);
 
-  if (["local", "cheap", "powerful"].includes(explicitHeader)) {
-    return { tier: explicitHeader, reason: "explicit-header" };
+  if (explicitTier) {
+    return { tier: explicitTier, reason: "explicit-header" };
   }
 
   const requestedModel = body?.model;
+  const explicitModels = {
+    "router/local": "local",
+    "router/luna": "luna",
+    "router/sol": "sol",
+    "router/cheap": "luna",
+    "router/powerful": "sol",
+  };
 
-  if (requestedModel === "router/local") return { tier: "local", reason: "explicit-model" };
-  if (requestedModel === "router/cheap") return { tier: "cheap", reason: "explicit-model" };
-  if (requestedModel === "router/powerful") return { tier: "powerful", reason: "explicit-model" };
+  if (explicitModels[requestedModel]) {
+    return {
+      tier: explicitModels[requestedModel],
+      reason: "explicit-model",
+    };
+  }
 
   const text = flattenMessages(body?.messages);
   const length = text.length;
@@ -54,23 +76,24 @@ export function chooseTier(body, headers, config) {
     length >= config.complexChars ||
     COMPLEX_KEYWORDS.some((keyword) => text.includes(keyword))
   ) {
-    return { tier: "powerful", reason: "complexity-heuristic" };
+    return { tier: "sol", reason: "complexity-heuristic" };
   }
 
   if (
     length >= config.mediumChars ||
     MEDIUM_KEYWORDS.some((keyword) => text.includes(keyword))
   ) {
-    return { tier: "cheap", reason: "complexity-heuristic" };
+    return { tier: "luna", reason: "complexity-heuristic" };
   }
 
   return { tier: "local", reason: "default-local" };
 }
 
 export function buildFallbackSequence(primary, config) {
-  const valid = config.fallbackOrder.filter((tier) =>
-    ["local", "cheap", "powerful"].includes(tier),
-  );
+  const normalized = config.fallbackOrder
+    .map(normalizeTier)
+    .filter(Boolean);
 
-  return [primary, ...valid.filter((tier) => tier !== primary)];
+  const unique = [...new Set(normalized)];
+  return [primary, ...unique.filter((tier) => tier !== primary)];
 }
