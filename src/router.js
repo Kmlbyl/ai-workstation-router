@@ -97,3 +97,18 @@ export function buildFallbackSequence(primary, config) {
   const unique = [...new Set(normalized)];
   return [primary, ...unique.filter((tier) => tier !== primary)];
 }
+
+export function explainDecision(body, headers, config) {
+  const decision = chooseTier(body, headers, config);
+
+  return {
+    tier: decision.tier,
+    reason: decision.reason,
+    fallback: buildFallbackSequence(decision.tier, config),
+    models: {
+      local: config.local?.model || null,
+      luna: config.luna?.model || null,
+      sol: config.sol?.model || null,
+    },
+  };
+}
